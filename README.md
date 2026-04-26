@@ -118,6 +118,58 @@ ORDER BY avg_rabies DESC
 LIMIT 10;
 ~~~~
 
-Результат запиту:
+![group by](https://github.com/oslippy/goit-rdb-fp/blob/main/Screenshot%202026-04-26%20at%2012.23.55.png)
 
-  ![group by](https://github.com/oslippy/goit-rdb-fp/blob/main/Screenshot%202026-04-26%20at%2012.23.55.png)
+## 4. Побудуємо колонку різниці в роках для нормованої таблиці
+
+~~~~sql
+SELECT
+    year,
+    MAKEDATE(year, 1) AS year_start,
+    CURDATE() AS today,
+    TIMESTAMPDIFF(YEAR, MAKEDATE(year, 1), CURDATE()) AS years_diff
+FROM normalized_infectious_cases;
+~~~~
+
+![years diff](https://github.com/oslippy/goit-rdb-fp/blob/main/Screenshot%202026-04-26%20at%2012.36.35.png)
+
+## 5. Побудуємо власну функцію
+
+* Створюємо і використаємо функцію, що будує такий же атрибут, як і в попередньому завданні: функція має приймати на вхід значення року, а повертати різницю в роках між поточною датою та датою, створеною з атрибута року (1996 рік → `1996-01-01`).
+
+  ~~~~sql
+  DELIMITER $$
+  
+  DROP FUNCTION IF EXISTS year_diff_from_today $$
+  
+  CREATE FUNCTION year_diff_from_today(input_year INT)
+  RETURNS INT
+  DETERMINISTIC
+  READS SQL DATA
+  BEGIN
+      DECLARE result INT;
+      SET result = TIMESTAMPDIFF(YEAR, MAKEDATE(input_year, 1), CURDATE());
+      RETURN result;
+  END $$
+  
+  DELIMITER ;
+  ~~~~
+
+* Використання функції `year_diff_from_today`
+
+  ~~~~sql
+  SELECT year_diff_from_today(1996) AS diff;
+  ~~~~
+
+  ![as scalar](https://github.com/oslippy/goit-rdb-fp/blob/main/Screenshot%202026-04-26%20at%2012.47.37.png)
+
+  ~~~~sql
+  SELECT
+    year,
+    year_diff_from_today(year) AS years_diff
+  FROM normalized_infectious_cases
+  GROUP BY year
+  ORDER BY year;
+  ~~~~
+
+  ![in query to table](https://github.com/oslippy/goit-rdb-fp/blob/main/Screenshot%202026-04-26%20at%2012.49.24.png)
